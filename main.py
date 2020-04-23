@@ -1,10 +1,11 @@
-from telegram.ext import Updater, MessageHandler, CommandHandler
-from telegram.ext.dispatcher import run_async
+from telegram.ext import \
+	Updater, \
+	CommandHandler, \
+	ConversationHandler
 
-import requests
-import re
 import logging
 
+from dogs import dog
 from settings import TOKEN
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -20,36 +21,19 @@ def start(update, context):
 def error(update, context):
 	logger.warning('Update "%s" caused error "%s"', update, context.error)
 
-
-def get_url():
-	contents = requests.get('https://random.dog/woof.json').json()
-	url = contents['url']
-
-	return url
-
-
-def get_image_url():
-	allowed_extension = ['jpg', 'jpeg', 'png']
-	file_extension = ''
-	while file_extension not in allowed_extension:
-		url = get_url()
-		file_extension = re.search("([^.]*)$", url).group(1).lower()
-	return url
-
-
-@run_async
-def dog(update, context):
-	url = get_image_url()
-	chat_id = update.message.chat_id
-
-	context.bot.send_photo(chat_id=chat_id, photo=url)
-
-
 def main():
 	updater = Updater(TOKEN, use_context=True)
 	dp = updater.dispatcher
-	dp.add_handler(CommandHandler("start", start))
-	dp.add_handler(CommandHandler('dog', dog))
+	conv_handler = ConversationHandler(
+		entry_points=[
+			CommandHandler('start', start),
+			CommandHandler('dog', dog),
+		],
+		states={},
+		fallbacks=[]
+
+	)
+	dp.add_handler(conv_handler)
 
 	dp.add_error_handler(error)
 
